@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stiface
+package storage
 
 import (
 	"context"
@@ -23,74 +23,78 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+//go:generate counterfeiter -generate
+
+//counterfeiter:generate -o ./fake/client.go . Client
+
 type Client interface {
 	Bucket(name string) BucketHandle
 	Buckets(ctx context.Context, projectID string) BucketIterator
 	Close() error
-
-	embedToIncludeNewMethods()
 }
+
+//counterfeiter:generate -o ./fake/object_handle.go . ObjectHandle
 
 type ObjectHandle interface {
 	ACL() ACLHandle
 	Generation(int64) ObjectHandle
-	If(storage.Conditions) ObjectHandle
+	If(Conditions) ObjectHandle
 	Key([]byte) ObjectHandle
 	ReadCompressed(bool) ObjectHandle
-	Attrs(context.Context) (*storage.ObjectAttrs, error)
-	Update(context.Context, storage.ObjectAttrsToUpdate) (*storage.ObjectAttrs, error)
+	Attrs(context.Context) (*ObjectAttrs, error)
+	Update(context.Context, ObjectAttrsToUpdate) (*ObjectAttrs, error)
 	NewReader(context.Context) (Reader, error)
 	NewRangeReader(context.Context, int64, int64) (Reader, error)
 	NewWriter(context.Context) Writer
 	Delete(context.Context) error
 	CopierFrom(ObjectHandle) Copier
 	ComposerFrom(...ObjectHandle) Composer
-
-	embedToIncludeNewMethods()
 }
 
+//counterfeiter:generate -o ./fake/bucket_handle.go . BucketHandle
+
 type BucketHandle interface {
-	Create(context.Context, string, *storage.BucketAttrs) error
+	Create(context.Context, string, *BucketAttrs) error
 	Delete(context.Context) error
 	DefaultObjectACL() ACLHandle
 	Object(string) ObjectHandle
-	Attrs(context.Context) (*storage.BucketAttrs, error)
-	Update(context.Context, storage.BucketAttrsToUpdate) (*storage.BucketAttrs, error)
+	Attrs(context.Context) (*BucketAttrs, error)
+	Update(context.Context, BucketAttrsToUpdate) (*BucketAttrs, error)
 	If(storage.BucketConditions) BucketHandle
-	Objects(context.Context, *storage.Query) ObjectIterator
+	Objects(context.Context, *Query) ObjectIterator
 	ACL() ACLHandle
 	IAM() *iam.Handle
 	UserProject(projectID string) BucketHandle
-	Notifications(context.Context) (map[string]*storage.Notification, error)
-	AddNotification(context.Context, *storage.Notification) (*storage.Notification, error)
+	Notifications(context.Context) (map[string]*Notification, error)
+	AddNotification(context.Context, *Notification) (*Notification, error)
 	DeleteNotification(context.Context, string) error
 	LockRetentionPolicy(context.Context) error
-
-	embedToIncludeNewMethods()
 }
+
+//counterfeiter:generate -o ./fake/object_iterator.go . ObjectIterator
 
 type ObjectIterator interface {
 	Next() (*storage.ObjectAttrs, error)
 	PageInfo() *iterator.PageInfo
-
-	embedToIncludeNewMethods()
 }
+
+//counterfeiter:generate -o ./fake/bucket_iterator.go . BucketIterator
 
 type BucketIterator interface {
 	SetPrefix(string)
 	Next() (*storage.BucketAttrs, error)
 	PageInfo() *iterator.PageInfo
-
-	embedToIncludeNewMethods()
 }
+
+//counterfeiter:generate -o ./fake/acl_handle.go . ACLHandle
 
 type ACLHandle interface {
-	Delete(context.Context, storage.ACLEntity) error
-	Set(context.Context, storage.ACLEntity, storage.ACLRole) error
-	List(context.Context) ([]storage.ACLRule, error)
-
-	embedToIncludeNewMethods()
+	Delete(context.Context, ACLEntity) error
+	Set(context.Context, ACLEntity, ACLRole) error
+	List(context.Context) ([]ACLRule, error)
 }
+
+//counterfeiter:generate -o ./fake/reader.go . Reader
 
 type Reader interface {
 	io.ReadCloser
@@ -99,35 +103,33 @@ type Reader interface {
 	ContentType() string
 	ContentEncoding() string
 	CacheControl() string
-
-	embedToIncludeNewMethods()
 }
+
+//counterfeiter:generate -o ./fake/writer.go . Writer
 
 type Writer interface {
 	io.WriteCloser
-	ObjectAttrs() *storage.ObjectAttrs
+	ObjectAttrs() *ObjectAttrs
 	SetChunkSize(int)
 	SetProgressFunc(func(int64))
-	SetCRC32C(uint32) // Sets both CRC32C and SendCRC32C.
+	SetCRC32C(uint32)
 	CloseWithError(err error) error
 	Attrs() *storage.ObjectAttrs
-
-	embedToIncludeNewMethods()
 }
 
+//counterfeiter:generate -o ./fake/copier.go . Copier
+
 type Copier interface {
-	ObjectAttrs() *storage.ObjectAttrs
+	ObjectAttrs() *ObjectAttrs
 	SetRewriteToken(string)
 	SetProgressFunc(func(uint64, uint64))
 	SetDestinationKMSKeyName(string)
-	Run(context.Context) (*storage.ObjectAttrs, error)
-
-	embedToIncludeNewMethods()
+	Run(context.Context) (*ObjectAttrs, error)
 }
 
-type Composer interface {
-	ObjectAttrs() *storage.ObjectAttrs
-	Run(context.Context) (*storage.ObjectAttrs, error)
+//counterfeiter:generate -o ./fake/composer.go . Composer
 
-	embedToIncludeNewMethods()
+type Composer interface {
+	ObjectAttrs() *ObjectAttrs
+	Run(context.Context) (*ObjectAttrs, error)
 }

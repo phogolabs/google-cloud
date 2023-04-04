@@ -12,18 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stiface
+package storage
 
 import (
 	"context"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
-// AdaptClient adapts a storage.Client so that it satisfies the Client
-// interface.
-func AdaptClient(c *storage.Client) Client {
-	return client{c}
+// NewClient creates a new Google Cloud Storage client.
+// The default scope is ScopeFullControl. To use a different scope, like
+// ScopeReadOnly, use option.WithScopes.
+//
+// Clients should be reused instead of created as needed. The methods of Client
+// are safe for concurrent use by multiple goroutines.
+//
+// You may configure the client by passing in options from the [google.golang.org/api/option]
+// package. You may also use options defined in this package, such as [WithJSONReads].
+func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error) {
+	c, err := storage.NewClient(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return client{c}, nil
 }
 
 type (
@@ -66,7 +79,7 @@ func (b bucketHandle) If(conds storage.BucketConditions) BucketHandle {
 	return bucketHandle{b.BucketHandle.If(conds)}
 }
 
-func (b bucketHandle) Objects(ctx context.Context, q *storage.Query) ObjectIterator {
+func (b bucketHandle) Objects(ctx context.Context, q *Query) ObjectIterator {
 	return objectIterator{b.BucketHandle.Objects(ctx, q)}
 }
 
@@ -94,7 +107,7 @@ func (o objectHandle) Generation(gen int64) ObjectHandle {
 	return objectHandle{o.ObjectHandle.Generation(gen)}
 }
 
-func (o objectHandle) If(conds storage.Conditions) ObjectHandle {
+func (o objectHandle) If(conds Conditions) ObjectHandle {
 	return objectHandle{o.ObjectHandle.If(conds)}
 }
 
@@ -155,7 +168,7 @@ func (w writer) SetCRC32C(c uint32) {
 	w.SendCRC32C = true
 }
 
-func (c copier) ObjectAttrs() *storage.ObjectAttrs {
+func (c copier) ObjectAttrs() *ObjectAttrs {
 	return &c.Copier.ObjectAttrs
 }
 
@@ -171,6 +184,20 @@ func (c copier) SetDestinationKMSKeyName(k string) {
 	c.DestinationKMSKeyName = k
 }
 
-func (c composer) ObjectAttrs() *storage.ObjectAttrs {
+func (c composer) ObjectAttrs() *ObjectAttrs {
 	return &c.Composer.ObjectAttrs
 }
+
+type Query = storage.Query
+type Conditions = storage.Conditions
+type Notification = storage.Notification
+
+type ObjectAttrs = storage.ObjectAttrs
+type ObjectAttrsToUpdate = storage.ObjectAttrsToUpdate
+
+type BucketAttrs = storage.BucketAttrs
+type BucketAttrsToUpdate = storage.BucketAttrsToUpdate
+
+type ACLRole = storage.ACLRole
+type ACLRule = storage.ACLRule
+type ACLEntity = storage.ACLEntity
